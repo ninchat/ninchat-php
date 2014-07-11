@@ -199,7 +199,7 @@ class Master
 	}
 
 	/**
-	 * Secure metadata for user with a request_audience API call.
+	 * Encrypt metadata for user with a request_audience API call.
 	 *
 	 * @param float|integer  $expire
 	 * @param array          $metadata (with string keys)
@@ -212,7 +212,7 @@ class Master
 	}
 
 	/**
-	 * Secure metadata for use with a request_audience API call, by the
+	 * Encrypt metadata for use with a request_audience API call, by the
 	 * specified user only.
 	 *
 	 * @param float|integer  $expire
