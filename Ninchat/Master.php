@@ -73,7 +73,7 @@ class Master
 
 	public function __destruct()
 	{
-		if ($this->aes === FALSE)
+		if ($this->aes !== FALSE)
 			mcrypt_module_close($this->aes);
 	}
 
@@ -263,8 +263,6 @@ class Master
 			throw new Exception(sprintf('Mcrypt buffer initialization failed (%s)', $error));
 
 		$msg_encrypted = mcrypt_generic($this->aes, $msg_hashed);
-
-		mcrypt_generic_deinit($this->aes);
 
 		$msg_iv = $iv . $msg_encrypted;
 		$msg_b64 = base64_encode($msg_iv);
