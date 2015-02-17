@@ -28,6 +28,8 @@
 
 namespace Ninchat;
 
+use \Exception;
+
 /**
  * Ninchat master key utilities.
  *
