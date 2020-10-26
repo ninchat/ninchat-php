@@ -166,7 +166,7 @@ class Master
 
 		if ($user_id !== NULL) {
 			$msg[] = array('user_id', $user_id);
-			$suffix = '-1';
+			$suffix = '1';
 		}
 
 		if ($member_attrs) {
@@ -195,9 +195,9 @@ class Master
 
 		$msg_json = $this->encode($msg);
 		$digest = hash_hmac('sha512', $msg_json, $this->key_secret_bin, TRUE);
-		$digest_b64 = base64_encode($digest);
+		$digest_b64 = $this->unpadded_base64url_encode($digest);
 
-		return sprintf('%s-%d-%s-%s%s', $this->key_id, $expire, $nonce, $digest_b64, $suffix);
+		return sprintf('%s.%d.%s.%s.%s', $this->key_id, $expire, $nonce, $digest_b64, $suffix);
 	}
 
 	/**
@@ -267,9 +267,9 @@ class Master
 		$msg_encrypted = mcrypt_generic($this->aes, $msg_hashed);
 
 		$msg_iv = $iv . $msg_encrypted;
-		$msg_b64 = base64_encode($msg_iv);
+		$msg_b64 = $this->unpadded_base64url_encode($msg_iv);
 
-		return sprintf('%s-%s', $this->key_id, $msg_b64);
+		return sprintf('%s.%s', $this->key_id, $msg_b64);
 	}
 
 	/**
@@ -284,5 +284,14 @@ class Master
 			throw new Exception('JSON encoding failed');
 
 		return $result;
+	}
+
+	/**
+	 * @param string  $data
+	 * @return string
+	 */
+	private function unpadded_base64url_encode($data)
+	{
+		return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
 	}
 }
