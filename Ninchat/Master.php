@@ -56,11 +56,6 @@ class Master
 	private $key_secret_bin;
 
 	/**
-	 * @var resource|FALSE
-	 */
-	private $aes = FALSE;
-
-	/**
 	 * @param string  $key_id
 	 * @param string  $key_secret
 	 * @throws Exception
@@ -71,12 +66,6 @@ class Master
 		$this->key_secret_bin = base64_decode($key_secret);
 		if (!$this->key_secret_bin)
 			throw new Exception('Ninchat master key is invalid');
-	}
-
-	public function __destruct()
-	{
-		if ($this->aes !== FALSE)
-			mcrypt_module_close($this->aes);
 	}
 
 	/**
@@ -243,28 +232,24 @@ class Master
 	 */
 	private function secure($msg)
 	{
-		// Mcrypt + Rijndael-128 + 32-byte key = AES-256
-		// http://www.kix.in/2008/07/22/aes-256-using-php-mcrypt/
-
-		if ($this->aes === FALSE) {
-			$this->aes = mcrypt_module_open(MCRYPT_RIJNDAEL_128, '', MCRYPT_MODE_CBC, '');
-			if ($this->aes === FALSE)
-				throw new Exception('Rijndael-128 mcrypt module opening failed');
-		}
-
 		$msg_json = $this->encode($msg);
+
 		$digest = hash('sha512', $msg_json, true);
 		$msg_hashed = $digest . $msg_json;
 
-		$iv = mcrypt_create_iv(mcrypt_enc_get_iv_size($this->aes), MCRYPT_DEV_URANDOM);
-		if ($iv === FALSE)
-			throw new Exception('Mcrypt IV creation failed');
+		$block_size = 16;
+		$block_mask = $block_size - 1;
 
-		$error = mcrypt_generic_init($this->aes, $this->key_secret_bin, $iv);
-		if ($error !== 0)
-			throw new Exception(sprintf('Mcrypt buffer initialization failed (%s)', $error));
+		$hashed_size = strlen($msg_hashed);
+		$padded_size = ($hashed_size + $block_mask) & ~$block_mask;
 
-		$msg_encrypted = mcrypt_generic($this->aes, $msg_hashed);
+		$msg_padded = str_pad($msg_hashed, $padded_size, "\0");
+
+		$iv = openssl_random_pseudo_bytes($block_size);
+
+		$msg_encrypted = openssl_encrypt($msg_padded, 'AES-256-CBC', $this->key_secret_bin, OPENSSL_RAW_DATA|OPENSSL_ZERO_PADDING, $iv);
+		if (!$msg_encrypted)
+			throw new Exception('Encryption error');
 
 		$msg_iv = $iv . $msg_encrypted;
 		$msg_b64 = $this->unpadded_base64url_encode($msg_iv);
